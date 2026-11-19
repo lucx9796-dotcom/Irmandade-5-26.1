@@ -89,7 +89,7 @@ public final class RelicDelivery {
         }
         DELIVERED.put(id, uuid);
         save();
-        p.displayClientMessage(TabText.parse("&dIMDD &7» &fVocê recebeu uma relíquia no seu baú do fim!"), false);
+        p.sendSystemMessage(TabText.parse("&dIMDD &7» &fVocê recebeu uma relíquia no seu baú do fim!"));
     }
 
     private static String pickFree() {
@@ -136,7 +136,7 @@ public final class RelicDelivery {
 
     private static void grantDragon(ServerPlayer p) {
         if (DELIVERED.containsKey("dragao")) {
-            p.displayClientMessage(TabText.parse("&dIMDD &7» &cA Relíquia do Dragão já foi conquistada."), false);
+            p.sendSystemMessage(TabText.parse("&dIMDD &7» &cA Relíquia do Dragão já foi conquistada."));
             return;
         }
         ItemStack relic = RelicRegistry.copyOf("dragao");
@@ -145,7 +145,7 @@ public final class RelicDelivery {
         if (!relic.isEmpty()) p.drop(relic, false);
         DELIVERED.put("dragao", p.getUUID().toString());
         save();
-        p.displayClientMessage(TabText.parse("&dIMDD &7» &fVocê conquistou uma relíquia!"), false);
+        p.sendSystemMessage(TabText.parse("&dIMDD &7» &fVocê conquistou uma relíquia!"));
     }
 
     // ---------- administração (/relics entregues, /relics liberar <id>) ----------

@@ -24,7 +24,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.windcharge.WindCharge;
+import net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.WindCharge;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -52,7 +52,7 @@ public final class RelicAbilities {
         UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
             // Ender chest bloqueado durante o Dia do Expurgo
             if (!world.isClientSide() && Expurgo.isActive() && world.getBlockState(hit.getBlockPos()).is(Blocks.ENDER_CHEST)) {
-                player.displayClientMessage(Expurgo.enderChestMessage(), false);
+                player.sendSystemMessage(Expurgo.enderChestMessage());
                 return InteractionResult.FAIL;
             }
             // Dragão: não pode ser colocado; clicar em bloco também teleporta
@@ -69,7 +69,7 @@ public final class RelicAbilities {
             if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return true;
             ItemStack relic = RelicRegistry.is(p.getMainHandItem(), "imortalidade") ? p.getMainHandItem()
                     : RelicRegistry.is(p.getOffhandItem(), "imortalidade") ? p.getOffhandItem() : ItemStack.EMPTY;
-            if (relic.isEmpty() || p.getCooldowns().isCoolingDown(relic)) return true; // em cooldown: morre
+            if (relic.isEmpty() || p.getCooldowns().isOnCooldown(relic)) return true; // em cooldown: morre
             p.setHealth(1.0f);
             p.removeAllEffects();
             p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
@@ -95,7 +95,7 @@ public final class RelicAbilities {
         if (id.isEmpty()) return InteractionResult.PASS;
         boolean mine = id.equals("espiao") || id.equals("vento") || id.equals("warden") || id.equals("dragao");
         if (!mine) return InteractionResult.PASS;
-        if (!id.equals("dragao") && p.getCooldowns().isCoolingDown(s)) return InteractionResult.FAIL;
+        if (!id.equals("dragao") && p.getCooldowns().isOnCooldown(s)) return InteractionResult.FAIL;
         if (w.isClientSide()) return InteractionResult.SUCCESS;
 
         ServerPlayer sp = (ServerPlayer) p;

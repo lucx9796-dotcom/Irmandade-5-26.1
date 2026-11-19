@@ -10,7 +10,7 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
@@ -39,8 +39,8 @@ public class RelicsMenu extends ChestMenu {
     }
 
     @Override
-    public void clicked(int slotIndex, int button, ClickType clickType, Player player) {
-        if (slotIndex >= 0 && slotIndex < 27 && clickType == ClickType.PICKUP && (button == 0 || button == 1)) {
+    public void clicked(int slotIndex, int button, ContainerInput clickType, Player player) {
+        if (slotIndex >= 0 && slotIndex < 27 && clickType == ContainerInput.PICKUP && (button == 0 || button == 1)) {
             ItemStack shown = getSlot(slotIndex).getItem();
             if (!shown.isEmpty()) {
                 ItemStack give = shown.copy();
