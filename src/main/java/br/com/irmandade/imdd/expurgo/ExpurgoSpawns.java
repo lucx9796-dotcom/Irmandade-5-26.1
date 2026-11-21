@@ -50,8 +50,7 @@ public final class ExpurgoSpawns {
         if (!(entity instanceof Mob mob)) return;
         if (mob.getType().getCategory() != MobCategory.MONSTER) return;
         if (mob.getType() == EntityTypes.PHANTOM) return;           // fantasmas têm sistema próprio
-        if (mob.getTags().contains(TAG)) return;                    // já processado (evita duplicar ao recarregar chunk)
-        mob.addTag(TAG);
+        if (!mob.addTag(TAG)) return;                               // addTag devolve false se já tinha a tag: já processado (evita duplicar ao recarregar chunk)
 
         if (mob.isPersistenceRequired() || mob.isPassenger() || mob.isVehicle()) return; // nomeado / jockey
         if (mob.getMaxHealth() >= 80f) return;                      // chefes (wither, warden, elder guardian...)

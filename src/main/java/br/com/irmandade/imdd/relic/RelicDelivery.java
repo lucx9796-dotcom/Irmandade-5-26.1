@@ -44,8 +44,10 @@ public final class RelicDelivery {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Map<String, String> DELIVERED = new LinkedHashMap<>(); // id da relíquia -> uuid do dono
     private static final Set<String> KNOWN = new HashSet<>();                    // jogadores já avaliados
+    private static final Set<String> RESET = new HashSet<>();                    // jogadores liberados por admin para novo sorteio
     private static final Map<UUID, UUID> EGG_OWNER = new HashMap<>();            // ovo (item) -> quem jogou
     private static final Random RANDOM = new Random();
+    private static long lastModified = 0;
     private static final Predicate<CommandSourceStack> OP = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
 
     private RelicDelivery() {}
@@ -72,9 +74,16 @@ public final class RelicDelivery {
         KNOWN.add(uuid);
 
         // Quem já tinha tempo de jogo antes do mod não é "novo no mapa"
+        // (exceto se um admin resetou o jogador: aí ele entra no sorteio de novo)
         int played = p.getStats().getValue(Stats.CUSTOM, Stats.PLAY_TIME);
-        if (played > 0) { save(); return; }
+        if (played > 0 && !RESET.remove(uuid)) { save(); return; }
 
+        giveRandom(p);
+    }
+
+    /** Sorteia uma relíquia livre e coloca no baú do fim do jogador (OPs não entram). */
+    private static void giveRandom(ServerPlayer p) {
+        String uuid = p.getUUID().toString();
         String id = pickFree();
         if (id == null) {
             Imdd.LOGGER.info("Sem relíquias livres para entregar a {}", p.getName().getString());
@@ -113,6 +122,7 @@ public final class RelicDelivery {
     }
 
     private static void tick(MinecraftServer server) {
+        if (server.getTickCount() % 100 == 0) syncFromFile(server);
         if (EGG_OWNER.isEmpty() || server.getTickCount() % 5 != 0) return;
         ServerLevel end = server.getLevel(Level.END);
         if (end == null) return;
@@ -159,6 +169,45 @@ public final class RelicDelivery {
         return had;
     }
 
+    /**
+     * Relê o arquivo (admin editou à mão). Quem era dono de uma relíquia e sumiu do arquivo
+     * é tratado como resetado e sorteado de novo (na hora se estiver online).
+     */
+    private static void syncFromFile(MinecraftServer server) {
+        try {
+            Path f = file();
+            if (!Files.exists(f)) return;
+            long mod = Files.getLastModifiedTime(f).toMillis();
+            if (mod == lastModified) return;
+            lastModified = mod;
+
+            JsonObject o = GSON.fromJson(Files.readString(f), JsonObject.class);
+            Map<String, String> fileDelivered = new LinkedHashMap<>();
+            for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("delivered").entrySet()) fileDelivered.put(e.getKey(), e.getValue().getAsString());
+            Set<String> fileKnown = new HashSet<>();
+            for (JsonElement e : o.getAsJsonArray("known")) fileKnown.add(e.getAsString());
+
+            // donos que estavam na memória e não estão mais no arquivo
+            Set<String> before = new HashSet<>(DELIVERED.values());
+            Set<String> after = new HashSet<>(fileDelivered.values());
+            before.removeAll(after);
+
+            DELIVERED.clear(); DELIVERED.putAll(fileDelivered);
+            KNOWN.clear(); KNOWN.addAll(fileKnown);
+
+            for (String u : before) {
+                KNOWN.remove(u);
+                RESET.add(u);
+                ServerPlayer online = server.getPlayerList().getPlayer(UUID.fromString(u));
+                if (online != null) onJoin(online);
+            }
+            if (!before.isEmpty()) save();
+            lastModified = Files.getLastModifiedTime(f).toMillis();
+        } catch (Exception e) {
+            Imdd.LOGGER.error("Falha ao sincronizar relics_delivery.json", e);
+        }
+    }
+
     // ---------- persistência ----------
 
     private static Path file() { return Expurgo.dir().resolve("relics_delivery.json"); }
@@ -167,6 +216,7 @@ public final class RelicDelivery {
         try {
             Path f = file();
             if (!Files.exists(f)) return;
+            lastModified = Files.getLastModifiedTime(f).toMillis();
             JsonObject o = GSON.fromJson(Files.readString(f), JsonObject.class);
             DELIVERED.clear();
             KNOWN.clear();
@@ -186,6 +236,7 @@ public final class RelicDelivery {
             o.add("delivered", d);
             o.add("known", k);
             Files.writeString(file(), GSON.toJson(o));
+            lastModified = Files.getLastModifiedTime(file()).toMillis();
         } catch (Exception e) {
             Imdd.LOGGER.error("Falha ao salvar relics_delivery.json", e);
         }
