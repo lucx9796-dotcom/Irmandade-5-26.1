@@ -58,6 +58,7 @@ public final class Expurgo {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, s) -> ExpurgoNpcs.onDisconnect(handler.getPlayer(), s));
         ServerLivingEntityEvents.AFTER_DEATH.register(ExpurgoNpcs::onDeath);
         ServerEntityEvents.ENTITY_LOAD.register(ExpurgoNpcs::onEntityLoad);
+        ExpurgoSpawns.init();
     }
 
     // ---------- ativação ----------
